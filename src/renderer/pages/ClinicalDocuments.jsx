@@ -1,67 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from 'react';
+import DocumentList from '../components/documents/DocumentList.jsx';
+import UploadDocumentModal from '../components/documents/UploadDocumentModal.jsx';
+import DocumentPreview from '../components/documents/DocumentPreview.jsx';
+import { fetchDocumentsByPatient, uploadDocument } from '../database/documentQueries.js';
 
-import DocumentList from "../components/documents/DocumentList";
+export default function ClinicalDocuments({ patient }) {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [preview, setPreview] = useState(null);
+  const [showUpload, setShowUpload] = useState(false);
 
-import UploadDocumentModal from "../components/documents/UploadDocumentModal";
-
-import DocumentPreview from "../components/documents/DocumentPreview";
-
-export default function ClinicalDocuments() {
-
-    const [documents, setDocuments] = useState([]);
-
-    const [preview, setPreview] = useState(null);
-
-    const [showUpload, setShowUpload] = useState(false);
-
-    function addDocument(doc) {
-
-        setDocuments(prev => [...prev, doc]);
-
+  const loadDocuments = useCallback(async () => {
+    if (!patient) return;
+    setLoading(true);
+    try {
+      const docs = await fetchDocumentsByPatient(patient.id);
+      setDocuments(docs);
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [patient]);
 
-    return (
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments]);
 
-        <div>
+  async function handleSave({ formData, file }) {
+    await uploadDocument({ patientId: patient.id, file, formData });
+    await loadDocuments();
+  }
 
-            <h1>Clinical Documents</h1>
+  return (
+    <div>
+      <h1>Clinical Documents</h1>
 
-            <button
-                onClick={() => setShowUpload(true)}
-            >
-                Upload Document
-            </button>
+      <button onClick={() => setShowUpload(true)} className="primary">Upload Document</button>
 
-            <DocumentList
+      {loading ? (
+        <p>Loading documents…</p>
+      ) : (
+        <DocumentList documents={documents} onPreview={setPreview} />
+      )}
 
-                documents={documents}
+      {showUpload && (
+        <UploadDocumentModal onSave={handleSave} onClose={() => setShowUpload(false)} />
+      )}
 
-                onPreview={setPreview}
-
-            />
-
-            {showUpload && (
-
-                <UploadDocumentModal
-
-                    onSave={addDocument}
-
-                    onClose={() => setShowUpload(false)}
-
-                />
-
-            )}
-
-            <DocumentPreview
-
-                document={preview}
-
-                onClose={() => setPreview(null)}
-
-            />
-
-        </div>
-
-    );
-
+      <DocumentPreview document={preview} onClose={() => setPreview(null)} />
+    </div>
+  );
 }

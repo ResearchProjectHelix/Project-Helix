@@ -6,6 +6,7 @@ import Timeline from './pages/Timeline.jsx';
 import BloodResults from './pages/BloodResults.jsx';
 import MDTNotes from './pages/MDTNotes.jsx';
 import Alerts from './pages/Alerts.jsx';
+import ClinicalDocuments from './pages/ClinicalDocuments.jsx';
 import { usePatients } from './hooks/usePatients.js';
 
 const PAGES = {
@@ -14,13 +15,14 @@ const PAGES = {
   Reports,
   Timeline,
   BloodResults,
+  ClinicalDocuments,
   MDTNotes,
   Alerts,
 };
 
 export default function App() {
   const [activePage, setActivePage] = useState('Dashboard');
-  const { patients, activePatient, setActivePatientId } = usePatients();
+  const { patients, activePatient, setActivePatientId, loading, error, refresh } = usePatients();
   const ActiveComponent = PAGES[activePage];
 
   return (
@@ -28,17 +30,19 @@ export default function App() {
       <nav className="sidebar">
         <div className="sidebar-title">Project Helix</div>
 
-        <select
-          value={activePatient.id}
-          onChange={(e) => setActivePatientId(e.target.value)}
-          className="patient-switcher"
-        >
-          {patients.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        {patients.length > 0 && activePatient && (
+          <select
+            value={activePatient.id}
+            onChange={(e) => setActivePatientId(e.target.value)}
+            className="patient-switcher"
+          >
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         {Object.keys(PAGES).map((name) => (
           <div
@@ -51,7 +55,14 @@ export default function App() {
         ))}
       </nav>
       <main className="main-content">
-        <ActiveComponent patient={activePatient} />
+        {loading && <p>Loading patient data…</p>}
+        {!loading && error && (
+          <div>
+            <h2>Could not load patient data</h2>
+            <p>{error.message}</p>
+          </div>
+        )}
+        {!loading && !error && activePatient && <ActiveComponent patient={activePatient} refresh={refresh} />}
       </main>
     </div>
   );

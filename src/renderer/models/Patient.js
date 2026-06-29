@@ -15,6 +15,7 @@ export function createPatient({
   timeline,
   mdtNotes,
   alerts,
+  completeness,
 }) {
   return {
     id,
@@ -33,5 +34,6 @@ export function createPatient({
     timeline,
     mdtNotes,
     alerts,
+    completeness,
   };
 }
