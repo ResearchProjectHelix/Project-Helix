@@ -6,7 +6,7 @@ export default defineConfig({
     build: {
       outDir: 'dist/main',
       lib: {
-        entry: 'electron/main.js',
+        entry: 'electron/main/main.js',
       },
     },
   },
@@ -14,7 +14,7 @@ export default defineConfig({
     build: {
       outDir: 'dist/preload',
       lib: {
-        entry: 'electron/preload.js',
+        entry: 'electron/preload/preload.js',
       },
     },
   },

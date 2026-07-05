@@ -18,7 +18,7 @@ function buildRules(patient) {
 
   const pathologyReport = reports.find((r) => r.type.includes('Pathology'));
   const pathologyAvailable = !!pathologyReport && pathologyReport.status === 'Available';
-  const biopsyCompleted = timelineEventStatus(timeline, 'Biopsy') === 'Completed';
+  const histopathologyEventCompleted = timelineEventStatus(timeline, 'Histopathology') === 'Completed';
 
   const familyHistoryRecorded = !!familyHistory && familyHistory !== 'Not yet recorded';
 
@@ -44,20 +44,20 @@ function buildRules(patient) {
     {
       key: 'mri',
       label: 'MRI',
-      met: timelineEventStatus(timeline, 'MRI') === 'Completed',
+      met: timelineEventStatus(timeline, 'MRI Scan') === 'Completed',
       priority: 'medium',
       reason: 'MRI has not been confirmed as completed.',
-      evidence: 'No completed "MRI" event found on the diagnostic timeline.',
+      evidence: 'No completed "MRI Scan" event found on the diagnostic timeline.',
       suggestedAction: 'Confirm MRI has been performed and update the timeline event status.',
     },
     {
       key: 'histopathology',
       label: 'Histopathology',
-      met: pathologyAvailable || biopsyCompleted,
+      met: histopathologyEventCompleted || pathologyAvailable,
       priority: 'high',
       reason: 'Histopathology result is not available.',
-      evidence: 'No pathology report marked "Available" and no completed biopsy event found.',
-      suggestedAction: 'Upload the histopathology report once available, and mark the biopsy event complete.',
+      evidence: 'No completed "Histopathology" event found and no pathology report marked "Available".',
+      suggestedAction: 'Upload the histopathology report once available, and mark the timeline event complete.',
     },
     {
       key: 'ca19_9',
@@ -71,10 +71,10 @@ function buildRules(patient) {
     {
       key: 'mdt_review',
       label: 'MDT Review',
-      met: timelineEventStatus(timeline, 'MDT Meeting') === 'Completed',
+      met: timelineEventStatus(timeline, 'MDT Review') === 'Completed',
       priority: 'high',
       reason: 'Patient has not yet been discussed at MDT.',
-      evidence: 'No completed "MDT Meeting" event found on the diagnostic timeline.',
+      evidence: 'No completed "MDT Review" event found on the diagnostic timeline.',
       suggestedAction: 'Schedule or confirm MDT discussion before finalising the management plan.',
     },
     {

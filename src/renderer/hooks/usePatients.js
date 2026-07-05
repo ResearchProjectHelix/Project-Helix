@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchAllPatients } from '../database/patientQueries.js';
+import { fetchAllPatients, createPatientRecord } from '../database/patientQueries.js';
 
 export function usePatients() {
   const [patients, setPatients] = useState([]);
@@ -26,6 +26,13 @@ export function usePatients() {
     loadPatients();
   }, [loadPatients]);
 
+  const addPatient = useCallback(async (formInput) => {
+    const newPatient = await createPatientRecord(formInput);
+    setPatients((current) => [...current, newPatient]);
+    setActivePatientId(newPatient.id);
+    return newPatient;
+  }, []);
+
   const activePatient = patients.find((p) => p.id === activePatientId) || null;
 
   return {
@@ -36,5 +43,6 @@ export function usePatients() {
     loading,
     error,
     refresh: loadPatients,
+    addPatient,
   };
 }
