@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient.js';
 
 const BUCKET = 'clinical-documents';
+const SIGNED_URL_EXPIRY_SECONDS = 60 * 10; // 10 minutes
 
 function formatDate(isoDate) {
   if (!isoDate) return null;
@@ -17,23 +18,39 @@ export async function fetchDocumentsByPatient(patientId) {
 
   if (error) throw error;
 
-  return data.map((d) => ({
-    id: d.id,
-    name: d.name,
-    category: d.category,
-    type: d.type,
-    bodyPart: d.body_part || '',
-    clinician: d.clinician || '',
-    hospital: d.hospital || '',
-    date: formatDate(d.doc_date),
-    notes: d.notes || '',
-    fileName: d.file_name || '',
-    filePath: d.file_path || '',
-    fileUrl: d.file_path
-      ? supabase.storage.from(BUCKET).getPublicUrl(d.file_path).data.publicUrl
-      : null,
-    uploadedAt: d.uploaded_at,
-  }));
+  const documents = await Promise.all(
+    data.map(async (d) => {
+      let fileUrl = null;
+
+      if (d.file_path) {
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from(BUCKET)
+          .createSignedUrl(d.file_path, SIGNED_URL_EXPIRY_SECONDS);
+
+        if (!signedError) {
+          fileUrl = signedData.signedUrl;
+        }
+      }
+
+      return {
+        id: d.id,
+        name: d.name,
+        category: d.category,
+        type: d.type,
+        bodyPart: d.body_part || '',
+        clinician: d.clinician || '',
+        hospital: d.hospital || '',
+        date: formatDate(d.doc_date),
+        notes: d.notes || '',
+        fileName: d.file_name || '',
+        filePath: d.file_path || '',
+        fileUrl,
+        uploadedAt: d.uploaded_at,
+      };
+    })
+  );
+
+  return documents;
 }
 
 export async function uploadDocument({ patientId, file, formData }) {

@@ -2,12 +2,15 @@ import DocumentCard from "./DocumentCard";
 
 export default function DocumentList({
     documents,
-    onPreview
+    onPreview,
+    onDelete
 }) {
 
     if (!documents.length) {
         return (
-            <p>No clinical documents uploaded.</p>
+            <div className="empty-state">
+                No clinical documents uploaded for this category.
+            </div>
         );
     }
 
@@ -20,6 +23,7 @@ export default function DocumentList({
                     key={doc.id}
                     document={doc}
                     onPreview={onPreview}
+                    onDelete={onDelete}
                 />
 
             ))}

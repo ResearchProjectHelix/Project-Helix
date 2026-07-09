@@ -60,7 +60,25 @@ export default function PatientSwitcher({ patients, activePatient, onSelect }) {
         >
           {activePatient ? (
             <>
-              <div style={{ fontSize: "0.9rem" }}>{activePatient.name}</div>
+              <div style={{ fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                {activePatient.name}
+                {activePatient.isSharedIn && (
+                  <span
+                    style={{
+                      fontSize: "0.65rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      color: "var(--accent)",
+                      background: "rgba(74, 127, 214, 0.15)",
+                      padding: "0.1rem 0.4rem",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    Shared
+                  </span>
+                )}
+              </div>
               <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                 {activePatient.mrn}
               </div>
@@ -120,6 +138,9 @@ export default function PatientSwitcher({ patients, activePatient, onSelect }) {
                 style={{
                   padding: "0.5rem 0.75rem",
                   cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
                   background:
                     patient.id === activePatient?.id ? "var(--surface-hover, rgba(255,255,255,0.05))" : "transparent",
                 }}
@@ -129,10 +150,29 @@ export default function PatientSwitcher({ patients, activePatient, onSelect }) {
                     patient.id === activePatient?.id ? "rgba(255,255,255,0.05)" : "transparent")
                 }
               >
-                <div style={{ fontSize: "0.9rem" }}>{patient.name}</div>
-                <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                  {patient.mrn}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "0.9rem" }}>{patient.name}</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    {patient.mrn}
+                  </div>
                 </div>
+                {patient.isSharedIn && (
+                  <span
+                    style={{
+                      fontSize: "0.65rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      color: "var(--accent)",
+                      background: "rgba(74, 127, 214, 0.15)",
+                      padding: "0.1rem 0.4rem",
+                      borderRadius: "4px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Shared
+                  </span>
+                )}
               </div>
             ))}
           </div>

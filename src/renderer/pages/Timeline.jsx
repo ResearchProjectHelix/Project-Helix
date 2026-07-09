@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { updateTimelineEvent } from "../database/timelineQueries.js";
 import { fetchDocumentsByPatient } from "../database/documentQueries.js";
+import { useIsReadOnly } from "../hooks/useIsReadOnly.js";
 
 function statusDotClass(status) {
   switch ((status || "").toLowerCase()) {
@@ -28,7 +29,7 @@ function statusBadgeClass(status) {
   }
 }
 
-function TimelineEventCard({ event, documents, onUpdated }) {
+function TimelineEventCard({ event, documents, onUpdated, readOnly }) {
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState(event.status);
   const [clinician, setClinician] = useState(event.clinician);
@@ -103,7 +104,7 @@ function TimelineEventCard({ event, documents, onUpdated }) {
           </div>
         )}
 
-        {editing && (
+        {editing && !readOnly && (
           <div className="timeline-edit">
 
             <label>Status</label>
@@ -150,7 +151,7 @@ function TimelineEventCard({ event, documents, onUpdated }) {
           </div>
         )}
 
-        {!editing && (
+        {!editing && !readOnly && (
           <button
             className="secondary timeline-edit-btn"
             onClick={() => setEditing(true)}
@@ -165,6 +166,7 @@ function TimelineEventCard({ event, documents, onUpdated }) {
 
 export default function Timeline({ patient, refresh }) {
   const [documents, setDocuments] = useState([]);
+  const readOnly = useIsReadOnly(patient);
 
   const loadDocs = useCallback(async () => {
     if (!patient) return;
@@ -187,6 +189,22 @@ export default function Timeline({ patient, refresh }) {
         </div>
       </div>
 
+      {readOnly && (
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            marginBottom: "1.25rem",
+            border: "1px solid var(--border)",
+            borderRadius: "6px",
+            background: "rgba(74, 127, 214, 0.08)",
+            color: "var(--text-secondary)",
+            fontSize: "0.88rem",
+          }}
+        >
+          Read-only — this patient's record is shared from another hospital. Timeline events cannot be edited here.
+        </div>
+      )}
+
       {/* TIMELINE */}
       <div className="timeline-container">
         {patient.timeline.map((event, idx) => (
@@ -195,6 +213,7 @@ export default function Timeline({ patient, refresh }) {
             event={event}
             documents={documents}
             onUpdated={refresh}
+            readOnly={readOnly}
           />
         ))}
       </div>

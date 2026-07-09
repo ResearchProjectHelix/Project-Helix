@@ -8,7 +8,7 @@ export default {
     const { data: callerProfile, error: profileError } = await ctx.supabase
       .from("user_profiles")
       .select("role, organization_id")
-      .eq("id", ctx.userClaims.sub)
+      .eq("id", ctx.userClaims.id)
       .single();
 
     if (profileError || !callerProfile || callerProfile.role !== "admin") {

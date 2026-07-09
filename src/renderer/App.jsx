@@ -13,6 +13,9 @@ import AddPatientModal from "./components/patients/AddPatientModal.jsx";
 import PatientSwitcher from "./components/patients/PatientSwitcher.jsx";
 import LoginScreen from "./components/auth/LoginScreen.jsx";
 import InviteUserModal from "./components/admin/InviteUserModal.jsx";
+import BulkInviteModal from "./components/admin/BulkInviteModal.jsx";
+import RequestRecordsModal from "./components/records/RequestRecordsModal.jsx";
+import IncomingRequestsModal from "./components/records/IncomingRequestsModal.jsx";
 
 import { usePatients } from "./hooks/usePatients.js";
 import { useAuth } from "./hooks/useAuth.js";
@@ -33,7 +36,12 @@ export default function App() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [showInviteUser, setShowInviteUser] = useState(false);
+  const [showBulkInvite, setShowBulkInvite] = useState(false);
+  const [showRequestRecords, setShowRequestRecords] = useState(false);
+  const [showIncomingRequests, setShowIncomingRequests] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [myOrganizationId, setMyOrganizationId] = useState(null);
 
   const { session, user, loading: authLoading, signIn, signOut } = useAuth();
 
@@ -50,16 +58,20 @@ export default function App() {
   useEffect(() => {
     if (!user) {
       setIsAdmin(false);
+      setIsPlatformAdmin(false);
+      setMyOrganizationId(null);
       return;
     }
 
     supabase
       .from("user_profiles")
-      .select("role")
+      .select("role, is_platform_admin, organization_id")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         setIsAdmin(data?.role === "admin");
+        setIsPlatformAdmin(!!data?.is_platform_admin);
+        setMyOrganizationId(data?.organization_id || null);
       });
   }, [user]);
 
@@ -100,57 +112,99 @@ export default function App() {
           Project Helix
         </div>
 
-        <div className="sidebar-section-title">
-          Active Patient
-        </div>
+        <div className="sidebar-scroll">
 
-        {patients.length > 0 && (
-          <PatientSwitcher
-            patients={patients}
-            activePatient={activePatient}
-            onSelect={setActivePatientId}
-          />
-        )}
+          {/* ACTIVE PATIENT */}
+          <div className="sidebar-section-title">
+            Active Patient
+          </div>
 
-        <button
-          className="primary"
-          style={{
-            width: "100%",
-            marginBottom: "1rem",
-          }}
-          onClick={() => setShowAddPatient(true)}
-        >
-          + New Patient
-        </button>
+          {patients.length > 0 && (
+            <PatientSwitcher
+              patients={patients}
+              activePatient={activePatient}
+              onSelect={setActivePatientId}
+            />
+          )}
 
-        {isAdmin && (
+          <button
+            className="primary"
+            style={{ width: "100%", marginBottom: "0.5rem" }}
+            onClick={() => setShowAddPatient(true)}
+          >
+            + New Patient
+          </button>
+
+          {/* RECORDS SHARING */}
+          <div className="sidebar-section-title">
+            Records Sharing
+          </div>
+
           <button
             className="secondary"
-            style={{
-              width: "100%",
-              marginBottom: "1rem",
-            }}
-            onClick={() => setShowInviteUser(true)}
+            style={{ width: "100%", marginBottom: "0.5rem" }}
+            onClick={() => setShowRequestRecords(true)}
           >
-            + Invite User
+            Request Records
           </button>
-        )}
 
-        <div className="sidebar-section-title">
-          Navigation
-        </div>
+          {isAdmin && (
+            <button
+              className="secondary"
+              style={{ width: "100%", marginBottom: "0.5rem" }}
+              onClick={() => setShowIncomingRequests(true)}
+            >
+              Incoming Requests
+            </button>
+          )}
 
-        {PAGES.map((page) => (
-          <div
-            key={page.id}
-            className={`nav-item ${
-              activePage === page.id ? "active" : ""
-            }`}
-            onClick={() => setActivePage(page.id)}
-          >
-            {page.label}
+          {/* ADMINISTRATION */}
+          {(isAdmin || isPlatformAdmin) && (
+            <>
+              <div className="sidebar-section-title">
+                Administration
+              </div>
+
+              {isAdmin && (
+                <button
+                  className="secondary"
+                  style={{ width: "100%", marginBottom: "0.5rem" }}
+                  onClick={() => setShowInviteUser(true)}
+                >
+                  + Invite User
+                </button>
+              )}
+
+              {isPlatformAdmin && (
+                <button
+                  className="secondary"
+                  style={{ width: "100%", marginBottom: "0.5rem" }}
+                  onClick={() => setShowBulkInvite(true)}
+                >
+                  + Bulk Invite
+                </button>
+              )}
+            </>
+          )}
+
+          {/* NAVIGATION */}
+          <div className="sidebar-section-title">
+            Navigation
           </div>
-        ))}
+
+          {PAGES.map((page) => (
+            <div
+              key={page.id}
+              className={`nav-item ${
+                activePage === page.id ? "active" : ""
+              }`}
+              onClick={() => setActivePage(page.id)}
+            >
+              {page.label}
+            </div>
+          ))}
+
+        </div>
 
         <div className="sidebar-footer">
           <div className="sidebar-version">
@@ -158,7 +212,7 @@ export default function App() {
           </div>
 
           <div className="sidebar-build">
-            Version 0.1.2
+            Version 0.1.3
           </div>
 
           <button
@@ -203,6 +257,22 @@ export default function App() {
       <InviteUserModal
         open={showInviteUser}
         onClose={() => setShowInviteUser(false)}
+      />
+
+      <BulkInviteModal
+        open={showBulkInvite}
+        onClose={() => setShowBulkInvite(false)}
+      />
+
+      <RequestRecordsModal
+        open={showRequestRecords}
+        onClose={() => setShowRequestRecords(false)}
+        myOrganizationId={myOrganizationId}
+      />
+
+      <IncomingRequestsModal
+        open={showIncomingRequests}
+        onClose={() => setShowIncomingRequests(false)}
       />
 
     </div>

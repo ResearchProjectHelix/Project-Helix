@@ -1,4 +1,4 @@
-export default function DocumentCard({ document, onPreview }) {
+export default function DocumentCard({ document, onPreview, onDelete }) {
   return (
     <div className="document-card">
       <div className="document-header">
@@ -16,9 +16,16 @@ export default function DocumentCard({ document, onPreview }) {
         <p><strong>Hospital:</strong> {document.hospital || "Unknown"}</p>
       </div>
 
-      <button onClick={() => onPreview(document)}>
-        Preview
-      </button>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <button onClick={() => onPreview(document)} style={{ flex: 1 }}>
+          Preview
+        </button>
+        {onDelete && (
+          <button onClick={() => onDelete(document)} className="secondary" style={{ flex: 1 }}>
+            Delete
+          </button>
+        )}
+      </div>
     </div>
   );
 }
