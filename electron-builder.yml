@@ -32,3 +32,4 @@ publish:
   owner: ResearchProjectHelix
   repo: Project-Helix
   releaseType: release
+  publishAutoUpdate: true
