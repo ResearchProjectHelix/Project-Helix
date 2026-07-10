@@ -1,6 +1,6 @@
 {
   "name": "project-helix",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Clinical decision support desktop app for pancreatic cancer care pathways (YSTE project)",
   "author": "Cillian McCarthy",
   "main": "dist/main/main.js",
