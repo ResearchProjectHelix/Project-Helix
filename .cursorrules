@@ -1,0 +1,70 @@
+# Project Helix — Development Context
+
+You are acting as a senior software engineer and architect continuing development of Project Helix, a desktop clinical decision support application built for the Stripe Young Scientist & Technology Exhibition (YSTE).
+
+## Core Rules
+
+1. Always generate complete files. Never give snippets or "replace this section" instructions.
+2. Treat this as production-quality software. No toy examples, no shortcuts unless explicitly requested.
+3. Never randomly change project structure. Respect existing architecture; only improve it.
+4. UI must resemble modern clinical software (Epic, Cerner, NCIS) — dark theme, information-dense, clinician-focused. Never playful or consumer-styled.
+5. Code style: clean modern React, no unnecessary comments, reusable components, consistent formatting.
+6. Whenever suggesting a feature, ask: "Would this reduce the chance of a clinician missing important information?" The software supports clinical judgement — it never replaces it, diagnoses, or recommends treatment.
+
+## Project Is NOT
+
+- An AI diagnosis tool
+- A treatment recommendation engine
+- A prescribing, dosing, or medication administration system (deliberately out of scope — this is decision support, not a clinical administration system)
+
+## Tech Stack
+
+- Electron + React (via electron-vite)
+- Supabase: Postgres, Auth, Storage, Edge Functions
+- Project structure: `src/renderer` (React app), `src/main` / `src/preload` (Electron), `supabase/migrations`, `supabase/functions`
+
+## Multi-Tenant Architecture (Critical Context)
+
+- `organizations` table represents individual hospitals.
+- `user_profiles` links each Supabase Auth user to one organization, a `role` (`clinician` | `admin`), and an `is_platform_admin` flag (separate, higher tier — only platform admins can bulk-invite across organizations or create new ones).
+- Every clinical table is scoped by `hospital_id` (on `patients`) and protected by Row Level Security — never assume RLS is optional or "temporary." A past incident left an insecure public/anon Storage policy in place; treat any RLS or Storage policy change as security-critical and verify with a real second-user test, not just SQL Editor checks (which run as superuser and bypass RLS).
+- Cross-hospital sharing uses two distinct, deliberately separate models — do not conflate them:
+  1. **Transfer of care** — exclusive reassignment of `hospital_id`.
+  2. **Record access requests** — non-exclusive, requestable read-only access via `record_access_requests` (approval workflow) and `patient_shared_access` (the resulting grant). Shared-in patients are always read-only, enforced both by RLS and client-side via the `useIsReadOnly` hook.
+
+## Authentication
+
+- No self-signup. Accounts are created by admins via Supabase Dashboard, the `invite-user` Edge Function (single invite, own org only), or `bulk-invite-users` (platform-admin only, can create new organizations).
+- Edge Functions use the `@supabase/server` `withSupabase({ auth: "user" })` pattern — `ctx.userClaims.id` (not `.sub`) for the caller's user ID, `ctx.supabase` (RLS-scoped) to verify caller permissions, `ctx.supabaseAdmin` (service role) only for the specific privileged operations that require it.
+- Password reset via Electron deep-linking is not yet implemented — flag this if relevant rather than assuming it works.
+
+## MRN Generation
+
+- Format: `HLX-YYYY-NNNNNN`, generated exclusively by a Postgres trigger (`assign_mrn`/`generate_mrn`) using a locked, per-year sequence table. Never generate or send an MRN from the client — this exists specifically to prevent race conditions under concurrent patient creation.
+
+## Feature Status (as actually built, not aspirational)
+
+- **Dashboard, Patient Overview** — built, not yet reviewed for functional gaps beyond initial redesign.
+- **Blood Results, Clinical Alerts** — built, not yet reviewed for functional gaps (next candidates for review).
+- **Reports** — full add/edit/delete, can link to an uploaded document.
+- **Clinical Timeline** — full add/edit, can link to an uploaded document.
+- **Clinical Documents** — real Supabase Storage upload, private bucket with signed URLs (10-min expiry), category filtering, delete.
+- **MDT Notes** — supports multiple dated entries per patient (attendees, summary, decision, actions) — not a single note per patient.
+- **Clinical Completeness Engine** — rule-based, checks real timeline event labels and blood/report data. If editing timeline event labels, the engine's checks must be updated to match exactly, or checks will silently never pass.
+- **Record sharing** (request/approve/revoke) — fully built and tested end-to-end with two real organizations.
+- **Release pipeline** — `npm run release:patch/minor/major` handles version bump, git tag, push, build, and GitHub Releases publish via electron-builder. Requires `GH_TOKEN` set in the environment.
+
+## Clinical Reference Point
+
+All feature decisions should be evaluated against real clinical feedback received from Dr. Lorraine Walsh (Consultant Radiation Oncologist): the core problem is fragmentation, not absence of digitisation — NCIS/NIMIS are inconsistently available across public/private centres, MDM discussions aren't always recorded, and the doctor-patient consultation must remain central, with software as a supportive tool only.
+
+## Scope Honesty
+
+Project Helix is a rigorous proof-of-concept for what a unified national clinical platform could look like — not a literal claim of readiness to replace NCIS/NIMIS. Real deployment would require HSE procurement, clinical safety certification, and formal data governance sign-off well beyond a student project. Keep this framing in any user-facing copy or documentation.
+
+## Response Requirements
+
+- Always generate complete files, never snippets.
+- Identify the next highest-value feature and build incrementally rather than waiting to be told everything.
+- When touching database schema, always provide the full migration SQL, not partial statements.
+- When a request is ambiguous or could affect security/data isolation, ask before proceeding rather than guessing.

@@ -1,39 +1,37 @@
 import React, { useState, useEffect } from "react";
 
-import Dashboard from "./pages/Dashboard.jsx";
-import Patient from "./pages/Patient.jsx";
-import Reports from "./pages/Reports.jsx";
-import Timeline from "./pages/Timeline.jsx";
-import BloodResults from "./pages/BloodResults.jsx";
-import MDTNotes from "./pages/MDTNotes.jsx";
-import Alerts from "./pages/Alerts.jsx";
-import ClinicalDocuments from "./pages/ClinicalDocuments.jsx";
-
 import AddPatientModal from "./components/patients/AddPatientModal.jsx";
-import PatientSwitcher from "./components/patients/PatientSwitcher.jsx";
 import LoginScreen from "./components/auth/LoginScreen.jsx";
 import InviteUserModal from "./components/admin/InviteUserModal.jsx";
 import BulkInviteModal from "./components/admin/BulkInviteModal.jsx";
 import RequestRecordsModal from "./components/records/RequestRecordsModal.jsx";
 import IncomingRequestsModal from "./components/records/IncomingRequestsModal.jsx";
+import Sidebar from "./components/layout/Sidebar.jsx";
 
 import { usePatients } from "./hooks/usePatients.js";
 import { useAuth } from "./hooks/useAuth.js";
 import { supabase } from "./database/supabaseClient.js";
+import {
+  DEFAULT_PAGE,
+  PAGE_IDS,
+  getPageComponent,
+  getPageLabel,
+} from "./config/navigation.js";
 
-const PAGES = [
-  { id: "Dashboard", label: "Dashboard", component: Dashboard },
-  { id: "Patient", label: "Patient Overview", component: Patient },
-  { id: "BloodResults", label: "Blood Results", component: BloodResults },
-  { id: "Reports", label: "Reports", component: Reports },
-  { id: "Timeline", label: "Clinical Timeline", component: Timeline },
-  { id: "ClinicalDocuments", label: "Clinical Documents", component: ClinicalDocuments },
-  { id: "MDTNotes", label: "MDT Notes", component: MDTNotes },
-  { id: "Alerts", label: "Clinical Alerts", component: Alerts },
-];
+const ACTIVE_PAGE_KEY = "helix-active-page";
+
+function readStoredPage() {
+  try {
+    const stored = sessionStorage.getItem(ACTIVE_PAGE_KEY);
+    if (stored && PAGE_IDS.includes(stored)) return stored;
+  } catch {
+    // ignore storage errors
+  }
+  return DEFAULT_PAGE;
+}
 
 export default function App() {
-  const [activePage, setActivePage] = useState("Dashboard");
+  const [activePage, setActivePage] = useState(readStoredPage);
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [showInviteUser, setShowInviteUser] = useState(false);
   const [showBulkInvite, setShowBulkInvite] = useState(false);
@@ -56,6 +54,14 @@ export default function App() {
   } = usePatients();
 
   useEffect(() => {
+    try {
+      sessionStorage.setItem(ACTIVE_PAGE_KEY, activePage);
+    } catch {
+      // ignore storage errors
+    }
+  }, [activePage]);
+
+  useEffect(() => {
     if (!user) {
       setIsAdmin(false);
       setIsPlatformAdmin(false);
@@ -75,8 +81,7 @@ export default function App() {
       });
   }, [user]);
 
-  const ActiveComponent =
-    PAGES.find((page) => page.id === activePage)?.component || Dashboard;
+  const ActiveComponent = getPageComponent(activePage);
 
   async function handleCreatePatient(form) {
     try {
@@ -106,128 +111,24 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <nav className="sidebar">
-
-        <div className="sidebar-title">
-          Project Helix
-        </div>
-
-        <div className="sidebar-scroll">
-
-          {/* ACTIVE PATIENT */}
-          <div className="sidebar-section-title">
-            Active Patient
-          </div>
-
-          {patients.length > 0 && (
-            <PatientSwitcher
-              patients={patients}
-              activePatient={activePatient}
-              onSelect={setActivePatientId}
-            />
-          )}
-
-          <button
-            className="primary"
-            style={{ width: "100%", marginBottom: "0.5rem" }}
-            onClick={() => setShowAddPatient(true)}
-          >
-            + New Patient
-          </button>
-
-          {/* RECORDS SHARING */}
-          <div className="sidebar-section-title">
-            Records Sharing
-          </div>
-
-          <button
-            className="secondary"
-            style={{ width: "100%", marginBottom: "0.5rem" }}
-            onClick={() => setShowRequestRecords(true)}
-          >
-            Request Records
-          </button>
-
-          {isAdmin && (
-            <button
-              className="secondary"
-              style={{ width: "100%", marginBottom: "0.5rem" }}
-              onClick={() => setShowIncomingRequests(true)}
-            >
-              Incoming Requests
-            </button>
-          )}
-
-          {/* ADMINISTRATION */}
-          {(isAdmin || isPlatformAdmin) && (
-            <>
-              <div className="sidebar-section-title">
-                Administration
-              </div>
-
-              {isAdmin && (
-                <button
-                  className="secondary"
-                  style={{ width: "100%", marginBottom: "0.5rem" }}
-                  onClick={() => setShowInviteUser(true)}
-                >
-                  + Invite User
-                </button>
-              )}
-
-              {isPlatformAdmin && (
-                <button
-                  className="secondary"
-                  style={{ width: "100%", marginBottom: "0.5rem" }}
-                  onClick={() => setShowBulkInvite(true)}
-                >
-                  + Bulk Invite
-                </button>
-              )}
-            </>
-          )}
-
-          {/* NAVIGATION */}
-          <div className="sidebar-section-title">
-            Navigation
-          </div>
-
-          {PAGES.map((page) => (
-            <div
-              key={page.id}
-              className={`nav-item ${
-                activePage === page.id ? "active" : ""
-              }`}
-              onClick={() => setActivePage(page.id)}
-            >
-              {page.label}
-            </div>
-          ))}
-
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="sidebar-version">
-            {user?.email}
-          </div>
-
-          <div className="sidebar-build">
-            Version 0.1.3
-          </div>
-
-          <button
-            className="secondary"
-            style={{ width: "100%", marginTop: "0.75rem" }}
-            onClick={signOut}
-          >
-            Sign Out
-          </button>
-        </div>
-
-      </nav>
+      <Sidebar
+        activePage={activePage}
+        onNavigate={setActivePage}
+        patients={patients}
+        activePatient={activePatient}
+        onSelectPatient={setActivePatientId}
+        onAddPatient={() => setShowAddPatient(true)}
+        onRequestRecords={() => setShowRequestRecords(true)}
+        onIncomingRequests={() => setShowIncomingRequests(true)}
+        onInviteUser={() => setShowInviteUser(true)}
+        onBulkInvite={() => setShowBulkInvite(true)}
+        isAdmin={isAdmin}
+        isPlatformAdmin={isPlatformAdmin}
+        userEmail={user?.email}
+        onSignOut={signOut}
+      />
 
       <main className="main-content">
-
         {loading && <p>Loading patient data...</p>}
 
         {!loading && error && (
@@ -237,15 +138,26 @@ export default function App() {
           </>
         )}
 
-        {!loading &&
-          !error &&
-          activePatient && (
-            <ActiveComponent
-              patient={activePatient}
-              refresh={refresh}
-            />
-          )}
+        {!loading && !error && !activePatient && (
+          <div className="main-content-empty">
+            <h2>
+              {patients.length === 0
+                ? "No patients in your caseload"
+                : "Select a patient to continue"}
+            </h2>
+            <p>
+              {patients.length === 0
+                ? "Create a new patient record using the sidebar to begin documenting clinical data."
+                : `Choose a patient from the Active Patient section in the sidebar to view ${getPageLabel(
+                    activePage
+                  ).toLowerCase()}.`}
+            </p>
+          </div>
+        )}
 
+        {!loading && !error && activePatient && (
+          <ActiveComponent patient={activePatient} refresh={refresh} />
+        )}
       </main>
 
       <AddPatientModal
@@ -274,7 +186,6 @@ export default function App() {
         open={showIncomingRequests}
         onClose={() => setShowIncomingRequests(false)}
       />
-
     </div>
   );
 }

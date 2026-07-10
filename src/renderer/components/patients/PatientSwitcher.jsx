@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 
-export default function PatientSwitcher({ patients, activePatient, onSelect }) {
+export default function PatientSwitcher({
+  patients,
+  activePatient,
+  onSelect,
+  collapsed = false,
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef(null);
@@ -39,139 +44,82 @@ export default function PatientSwitcher({ patients, activePatient, onSelect }) {
     }
   }
 
+  const collapsedLabel = activePatient
+    ? activePatient.name?.charAt(0)?.toUpperCase() || "P"
+    : "P";
+
   return (
-    <div className="patient-switcher-container" ref={containerRef} style={{ position: "relative" }}>
+    <div className="patient-switcher-container" ref={containerRef}>
       {!open && (
         <button
           type="button"
-          className="patient-switcher-trigger"
+          className={`patient-switcher-trigger ${
+            collapsed ? "patient-switcher-trigger--collapsed" : ""
+          }`}
           onClick={() => setOpen(true)}
-          style={{
-            width: "100%",
-            textAlign: "left",
-            padding: "0.5rem 0.75rem",
-            marginBottom: "0.75rem",
-            borderRadius: "6px",
-            border: "1px solid var(--border)",
-            background: "var(--bg)",
-            color: "var(--text)",
-            cursor: "pointer",
-          }}
+          title={
+            collapsed && activePatient
+              ? `${activePatient.name} (${activePatient.mrn})`
+              : undefined
+          }
         >
-          {activePatient ? (
+          {collapsed ? (
+            collapsedLabel
+          ) : activePatient ? (
             <>
-              <div style={{ fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <div className="patient-switcher-name">
                 {activePatient.name}
                 {activePatient.isSharedIn && (
-                  <span
-                    style={{
-                      fontSize: "0.65rem",
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                      color: "var(--accent)",
-                      background: "rgba(74, 127, 214, 0.15)",
-                      padding: "0.1rem 0.4rem",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    Shared
-                  </span>
+                  <span className="patient-switcher-badge">Shared</span>
                 )}
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                {activePatient.mrn}
-              </div>
+              <div className="patient-switcher-mrn">{activePatient.mrn}</div>
             </>
           ) : (
-            <span style={{ color: "var(--text-secondary)" }}>Select patient...</span>
+            <span className="patient-switcher-placeholder">Select patient...</span>
           )}
         </button>
       )}
 
       {open && (
-        <div
-          style={{
-            marginBottom: "0.75rem",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            background: "var(--bg)",
-            overflow: "hidden",
-          }}
-        >
+        <div className="patient-switcher-dropdown">
           <input
             autoFocus
             type="text"
+            className="patient-switcher-search"
             placeholder="Search by name or MRN..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "0.5rem 0.75rem",
-              border: "none",
-              borderBottom: "1px solid var(--border)",
-              background: "var(--bg)",
-              color: "var(--text)",
-              outline: "none",
-            }}
           />
 
-          <div style={{ maxHeight: "240px", overflowY: "auto" }}>
+          <div className="patient-switcher-list">
             {filteredPatients.length === 0 && (
-              <div
-                style={{
-                  padding: "0.6rem 0.75rem",
-                  fontSize: "0.85rem",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                No matching patients
-              </div>
+              <div className="patient-switcher-empty">No matching patients</div>
             )}
 
             {filteredPatients.map((patient) => (
               <div
                 key={patient.id}
+                className={`patient-switcher-option ${
+                  patient.id === activePatient?.id ? "active" : ""
+                }`}
                 onClick={() => handleSelect(patient.id)}
-                style={{
-                  padding: "0.5rem 0.75rem",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                  background:
-                    patient.id === activePatient?.id ? "var(--surface-hover, rgba(255,255,255,0.05))" : "transparent",
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelect(patient.id);
+                  }
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background =
-                    patient.id === activePatient?.id ? "rgba(255,255,255,0.05)" : "transparent")
-                }
               >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "0.9rem" }}>{patient.name}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                    {patient.mrn}
-                  </div>
+                <div className="patient-switcher-option-body">
+                  <div className="patient-switcher-option-name">{patient.name}</div>
+                  <div className="patient-switcher-option-mrn">{patient.mrn}</div>
                 </div>
                 {patient.isSharedIn && (
-                  <span
-                    style={{
-                      fontSize: "0.65rem",
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                      color: "var(--accent)",
-                      background: "rgba(74, 127, 214, 0.15)",
-                      padding: "0.1rem 0.4rem",
-                      borderRadius: "4px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    Shared
-                  </span>
+                  <span className="patient-switcher-badge">Shared</span>
                 )}
               </div>
             ))}
