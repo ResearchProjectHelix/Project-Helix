@@ -434,3 +434,17 @@ entrypoint = "./functions/bulk-invite-users/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/bulk-invite-users/*.html" ]
+[functions.list-org-users]
+enabled = true
+verify_jwt = true
+import_map = "./import_map.json"  # <-- Fixed here
+
+[functions.update-user-role]
+enabled = true
+verify_jwt = true
+import_map = "./import_map.json"  # <-- Fixed here
+
+[functions.set-user-active]
+enabled = true
+verify_jwt = true
+import_map = "./import_map.json"  # <-- Fixed here

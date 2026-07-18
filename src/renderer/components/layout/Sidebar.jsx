@@ -7,7 +7,6 @@ import helixIcon from "../../../../build/icon-round.png";
 
 const COLLAPSE_KEY = "helix-sidebar-collapsed";
 const RECORDS_KEY = "helix-sidebar-records-open";
-const ADMIN_KEY = "helix-sidebar-admin-open";
 
 function readStoredBoolean(key, fallback) {
   try {
@@ -55,6 +54,15 @@ function CollapsibleSection({
   );
 }
 
+function filterNavGroups(isAdmin, isPlatformAdmin) {
+  const showAdminItems = isAdmin || isPlatformAdmin;
+
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.adminOnly || showAdminItems),
+  })).filter((group) => group.items.length > 0);
+}
+
 export default function Sidebar({
   activePage,
   onNavigate,
@@ -64,8 +72,6 @@ export default function Sidebar({
   onAddPatient,
   onRequestRecords,
   onIncomingRequests,
-  onInviteUser,
-  onBulkInvite,
   isAdmin,
   isPlatformAdmin,
   userEmail,
@@ -77,9 +83,6 @@ export default function Sidebar({
   const [recordsOpen, setRecordsOpen] = useState(() =>
     readStoredBoolean(RECORDS_KEY, false)
   );
-  const [adminOpen, setAdminOpen] = useState(() =>
-    readStoredBoolean(ADMIN_KEY, false)
-  );
 
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, String(collapsed));
@@ -89,11 +92,7 @@ export default function Sidebar({
     localStorage.setItem(RECORDS_KEY, String(recordsOpen));
   }, [recordsOpen]);
 
-  useEffect(() => {
-    localStorage.setItem(ADMIN_KEY, String(adminOpen));
-  }, [adminOpen]);
-
-  const showAdminSection = isAdmin || isPlatformAdmin;
+  const visibleNavGroups = filterNavGroups(isAdmin, isPlatformAdmin);
 
   return (
     <nav
@@ -108,7 +107,12 @@ export default function Sidebar({
             className="sidebar-brand-icon"
             aria-hidden="true"
           />
-          {!collapsed && <span className="sidebar-brand-text">Project Helix</span>}
+          {!collapsed && (
+            <div className="sidebar-brand-text-group">
+              <span className="sidebar-brand-text">PRISM</span>
+              <span className="sidebar-brand-subtext">Project Helix</span>
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -150,7 +154,7 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar-scroll">
-        {NAV_GROUPS.map((group) => (
+        {visibleNavGroups.map((group) => (
           <div key={group.id} className="sidebar-nav-group">
             {!collapsed && (
               <div className="sidebar-section-title">{group.label}</div>
@@ -200,85 +204,33 @@ export default function Sidebar({
                   <NavIcon name="reports" />
                 </button>
               )}
+            </div>
+          ) : (
+            <CollapsibleSection
+              id="records"
+              label="Records Sharing"
+              icon="share"
+              collapsed={collapsed}
+              open={recordsOpen}
+              onToggle={() => setRecordsOpen((value) => !value)}
+            >
+              <button
+                type="button"
+                className="sidebar-action-btn secondary"
+                onClick={onRequestRecords}
+              >
+                Request Records
+              </button>
               {isAdmin && (
                 <button
                   type="button"
-                  className="sidebar-icon-btn"
-                  onClick={onInviteUser}
-                  title="Invite User"
-                >
-                  <NavIcon name="admin" />
-                </button>
-              )}
-              {isPlatformAdmin && (
-                <button
-                  type="button"
-                  className="sidebar-icon-btn"
-                  onClick={onBulkInvite}
-                  title="Bulk Invite"
-                >
-                  <NavIcon name="patient" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              <CollapsibleSection
-                id="records"
-                label="Records Sharing"
-                icon="share"
-                collapsed={collapsed}
-                open={recordsOpen}
-                onToggle={() => setRecordsOpen((value) => !value)}
-              >
-                <button
-                  type="button"
                   className="sidebar-action-btn secondary"
-                  onClick={onRequestRecords}
+                  onClick={onIncomingRequests}
                 >
-                  Request Records
+                  Incoming Requests
                 </button>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    className="sidebar-action-btn secondary"
-                    onClick={onIncomingRequests}
-                  >
-                    Incoming Requests
-                  </button>
-                )}
-              </CollapsibleSection>
-
-              {showAdminSection && (
-                <CollapsibleSection
-                  id="admin"
-                  label="Administration"
-                  icon="admin"
-                  collapsed={collapsed}
-                  open={adminOpen}
-                  onToggle={() => setAdminOpen((value) => !value)}
-                >
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      className="sidebar-action-btn secondary"
-                      onClick={onInviteUser}
-                    >
-                      Invite User
-                    </button>
-                  )}
-                  {isPlatformAdmin && (
-                    <button
-                      type="button"
-                      className="sidebar-action-btn secondary"
-                      onClick={onBulkInvite}
-                    >
-                      Bulk Invite
-                    </button>
-                  )}
-                </CollapsibleSection>
               )}
-            </>
+            </CollapsibleSection>
           )}
         </div>
       </div>

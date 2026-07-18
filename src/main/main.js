@@ -9,6 +9,13 @@ function createWindow() {
     height: 900,
     backgroundColor: "#0f1115",
     show: false,
+    title: "PRISM",
+    // Sets the window/taskbar icon while the app is running (dev and
+    // packaged). This is separate from the packaged .exe's own icon,
+    // which electron-builder embeds automatically from build/icon.ico
+    // at build time via its default conventions — no config needed
+    // there since package.json has no explicit "build" block.
+    icon: path.join(app.getAppPath(), "build", "icon.ico"),
     webPreferences: {
       // ✅ FIXED PRELOAD (THIS IS YOUR CRASH)
       preload: path.join(__dirname, "../preload/index.js"),

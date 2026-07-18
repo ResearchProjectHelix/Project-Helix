@@ -16,6 +16,8 @@ import {
   PAGE_IDS,
   getPageComponent,
   getPageLabel,
+  isAdminOnlyPage,
+  isPatientScopedPage,
 } from "./config/navigation.js";
 
 const ACTIVE_PAGE_KEY = "helix-active-page";
@@ -40,6 +42,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [myOrganizationId, setMyOrganizationId] = useState(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const { session, user, loading: authLoading, signIn, signOut } = useAuth();
 
@@ -66,22 +69,52 @@ export default function App() {
       setIsAdmin(false);
       setIsPlatformAdmin(false);
       setMyOrganizationId(null);
+      setProfileLoaded(false);
       return;
     }
 
+    let cancelled = false;
+
     supabase
       .from("user_profiles")
-      .select("role, is_platform_admin, organization_id")
+      .select("role, is_platform_admin, organization_id, is_active")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
+        if (cancelled) return;
+
+        if (data && data.is_active === false) {
+          // Deactivated accounts should not retain access. This is a
+          // client-side check for now — see the is_active migration
+          // note for the follow-up RLS-level enforcement this still needs.
+          alert(
+            "Your account has been deactivated. Please contact your organisation administrator."
+          );
+          signOut();
+          return;
+        }
+
         setIsAdmin(data?.role === "admin");
         setIsPlatformAdmin(!!data?.is_platform_admin);
         setMyOrganizationId(data?.organization_id || null);
+        setProfileLoaded(true);
       });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  useEffect(() => {
+    if (!profileLoaded) return;
+    if (isAdminOnlyPage(activePage) && !isAdmin && !isPlatformAdmin) {
+      setActivePage(DEFAULT_PAGE);
+    }
+  }, [profileLoaded, activePage, isAdmin, isPlatformAdmin]);
+
   const ActiveComponent = getPageComponent(activePage);
+  const patientScoped = isPatientScopedPage(activePage);
 
   async function handleCreatePatient(form) {
     try {
@@ -120,8 +153,6 @@ export default function App() {
         onAddPatient={() => setShowAddPatient(true)}
         onRequestRecords={() => setShowRequestRecords(true)}
         onIncomingRequests={() => setShowIncomingRequests(true)}
-        onInviteUser={() => setShowInviteUser(true)}
-        onBulkInvite={() => setShowBulkInvite(true)}
         isAdmin={isAdmin}
         isPlatformAdmin={isPlatformAdmin}
         userEmail={user?.email}
@@ -129,34 +160,47 @@ export default function App() {
       />
 
       <main className="main-content">
-        {loading && <p>Loading patient data...</p>}
-
-        {!loading && error && (
+        {!patientScoped ? (
+          <ActiveComponent
+            isAdmin={isAdmin}
+            isPlatformAdmin={isPlatformAdmin}
+            myOrganizationId={myOrganizationId}
+            currentUserId={user?.id}
+            onInviteUser={() => setShowInviteUser(true)}
+            onBulkInvite={() => setShowBulkInvite(true)}
+          />
+        ) : (
           <>
-            <h2>Unable to Load Patient Data</h2>
-            <p>{error.message}</p>
+            {loading && <p>Loading patient data...</p>}
+
+            {!loading && error && (
+              <>
+                <h2>Unable to Load Patient Data</h2>
+                <p>{error.message}</p>
+              </>
+            )}
+
+            {!loading && !error && !activePatient && (
+              <div className="main-content-empty">
+                <h2>
+                  {patients.length === 0
+                    ? "No patients in your caseload"
+                    : "Select a patient to continue"}
+                </h2>
+                <p>
+                  {patients.length === 0
+                    ? "Create a new patient record using the sidebar to begin documenting clinical data."
+                    : `Choose a patient from the Active Patient section in the sidebar to view ${getPageLabel(
+                        activePage
+                      ).toLowerCase()}.`}
+                </p>
+              </div>
+            )}
+
+            {!loading && !error && activePatient && (
+              <ActiveComponent patient={activePatient} refresh={refresh} />
+            )}
           </>
-        )}
-
-        {!loading && !error && !activePatient && (
-          <div className="main-content-empty">
-            <h2>
-              {patients.length === 0
-                ? "No patients in your caseload"
-                : "Select a patient to continue"}
-            </h2>
-            <p>
-              {patients.length === 0
-                ? "Create a new patient record using the sidebar to begin documenting clinical data."
-                : `Choose a patient from the Active Patient section in the sidebar to view ${getPageLabel(
-                    activePage
-                  ).toLowerCase()}.`}
-            </p>
-          </div>
-        )}
-
-        {!loading && !error && activePatient && (
-          <ActiveComponent patient={activePatient} refresh={refresh} />
         )}
       </main>
 

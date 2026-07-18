@@ -1,4 +1,5 @@
 import { useState } from "react";
+import helixIcon from "../../../../build/icon-round.png";
 
 export default function LoginScreen({ onSignIn }) {
   const [email, setEmail] = useState("");
@@ -23,9 +24,21 @@ export default function LoginScreen({ onSignIn }) {
   return (
     <div className="login-page">
       <div className="login-brand-panel">
-        <div className="login-brand-title">Project Helix</div>
+        <div className="login-brand-header">
+          <img
+            src={helixIcon}
+            alt=""
+            className="login-brand-icon"
+            aria-hidden="true"
+          />
+          <div className="login-brand-title-group">
+            <div className="login-brand-title">PRISM</div>
+            <div className="login-brand-subtitle">Project Helix</div>
+          </div>
+        </div>
         <p className="login-brand-text">
-          A clinical decision support platform built to bring pathology, imaging,
+          PRISM (Patient Record Integration &amp; Support Management) is a
+          clinical decision support platform built to bring pathology, imaging,
           MDT discussions, and surgical notes into a single view — supporting
           the clinician, not replacing their judgement.
         </p>

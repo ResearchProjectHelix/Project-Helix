@@ -6,6 +6,7 @@ import Timeline from "../pages/Timeline.jsx";
 import ClinicalDocuments from "../pages/ClinicalDocuments.jsx";
 import MDTNotes from "../pages/MDTNotes.jsx";
 import Alerts from "../pages/Alerts.jsx";
+import AdministrationPage from "../pages/AdministrationPage.jsx";
 
 export const NAV_GROUPS = [
   {
@@ -30,8 +31,19 @@ export const NAV_GROUPS = [
   {
     id: "monitoring",
     label: "Monitoring",
+    items: [{ id: "Alerts", label: "Clinical Alerts", icon: "alerts" }],
+  },
+  {
+    id: "administration",
+    label: "Administration",
     items: [
-      { id: "Alerts", label: "Clinical Alerts", icon: "alerts" },
+      {
+        id: "Administration",
+        label: "Administration",
+        icon: "admin",
+        adminOnly: true,
+        patientScoped: false,
+      },
     ],
   },
 ];
@@ -45,6 +57,7 @@ const PAGE_COMPONENTS = {
   ClinicalDocuments,
   MDTNotes,
   Alerts,
+  Administration: AdministrationPage,
 };
 
 export const PAGE_IDS = NAV_GROUPS.flatMap((group) =>
@@ -61,6 +74,26 @@ export function getPageLabel(pageId) {
     if (item) return item.label;
   }
   return pageId;
+}
+
+function findNavItem(pageId) {
+  for (const group of NAV_GROUPS) {
+    const item = group.items.find((entry) => entry.id === pageId);
+    if (item) return item;
+  }
+  return null;
+}
+
+export function isAdminOnlyPage(pageId) {
+  const item = findNavItem(pageId);
+  return !!item?.adminOnly;
+}
+
+export function isPatientScopedPage(pageId) {
+  const item = findNavItem(pageId);
+  // Existing pages default to patient-scoped; a page opts out
+  // explicitly via patientScoped: false (e.g. Administration).
+  return item ? item.patientScoped !== false : true;
 }
 
 export const DEFAULT_PAGE = "Dashboard";

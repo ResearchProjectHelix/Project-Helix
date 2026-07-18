@@ -10,6 +10,7 @@ export default defineConfig({
       },
     },
   },
+
   preload: {
     build: {
       outDir: 'dist/preload',
@@ -18,9 +19,16 @@ export default defineConfig({
       },
     },
   },
+
   renderer: {
     root: 'src/renderer',
     plugins: [react()],
+
+    server: {
+      host: true,
+      port: 5173,
+    },
+
     build: {
       outDir: 'dist/renderer',
       rollupOptions: {

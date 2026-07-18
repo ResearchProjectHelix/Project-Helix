@@ -1,5 +1,6 @@
 {
   "name": "project-helix",
+  "productName": "PRISM",
   "version": "1.3.0",
   "description": "Clinical decision support desktop app for pancreatic cancer care pathways (YSTE project)",
   "author": "Cillian McCarthy",
