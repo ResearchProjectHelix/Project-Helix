@@ -5,6 +5,14 @@
   "description": "Clinical decision support desktop app for pancreatic cancer care pathways (YSTE project)",
   "author": "Cillian McCarthy",
   "main": "dist/main/main.js",
+  "build": {
+    "appId": "com.projecthelix.prism",
+    "productName": "PRISM",
+    "artifactName": "PRISM-Setup-${version}.${ext}",
+    "win": {
+      "executableName": "PRISM"
+    }
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
