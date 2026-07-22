@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { createReport, updateReport, deleteReport } from "../database/reportQueries.js";
 import { fetchDocumentsByPatient } from "../database/documentQueries.js";
 import { useIsReadOnly } from "../hooks/useIsReadOnly.js";
+import { useConfirm } from "../components/feedback/ConfirmContext.jsx";
+import { useToast } from "../components/feedback/ToastContext.jsx";
 
 function statusClass(status) {
   switch ((status || "").toLowerCase()) {
@@ -33,6 +35,8 @@ function ReportRow({ report, documents, onSaved, onDeleted, readOnly }) {
     document_id: report.documentId || "",
   });
   const [saving, setSaving] = useState(false);
+  const confirm = useConfirm();
+  const toast = useToast();
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -49,22 +53,31 @@ function ReportRow({ report, documents, onSaved, onDeleted, readOnly }) {
       });
       setEditing(false);
       await onSaved();
+      toast.success("Report saved.");
     } catch (err) {
       console.error(err);
-      alert("Unable to save report.");
+      toast.error("Unable to save report.");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete() {
-    if (!window.confirm("Delete this report entry? This cannot be undone.")) return;
+    const ok = await confirm({
+      title: "Delete report?",
+      message: "Delete this report entry? This cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+
     try {
       await deleteReport(report.id);
       await onDeleted();
+      toast.success("Report deleted.");
     } catch (err) {
       console.error(err);
-      alert("Unable to delete report.");
+      toast.error("Unable to delete report.");
     }
   }
 
@@ -148,6 +161,7 @@ export default function Reports({ patient, refresh }) {
   const [documents, setDocuments] = useState([]);
   const [adding, setAdding] = useState(false);
   const readOnly = useIsReadOnly(patient);
+  const toast = useToast();
 
   const loadDocs = useCallback(async () => {
     if (!patient) return;
@@ -166,7 +180,7 @@ export default function Reports({ patient, refresh }) {
       await refresh();
     } catch (err) {
       console.error(err);
-      alert("Unable to create report.");
+      toast.error("Unable to create report.");
     } finally {
       setAdding(false);
     }

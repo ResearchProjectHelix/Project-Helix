@@ -141,7 +141,7 @@ export default function AddPatientModal({
                 required
               />
               {errors.dob && (
-                <p className="field-error" style={{ color: "var(--danger, #e05252)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                <p className="field-error" style={{ color: "var(--critical)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
                   {errors.dob}
                 </p>
               )}
@@ -197,7 +197,7 @@ export default function AddPatientModal({
                 onChange={(e) => update("referralDate", e.target.value)}
               />
               {errors.referralDate && (
-                <p className="field-error" style={{ color: "var(--danger, #e05252)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                <p className="field-error" style={{ color: "var(--critical)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
                   {errors.referralDate}
                 </p>
               )}

@@ -9,6 +9,10 @@
     "appId": "com.projecthelix.prism",
     "productName": "PRISM",
     "artifactName": "PRISM-Setup-${version}.${ext}",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
     "win": {
       "executableName": "PRISM"
     }

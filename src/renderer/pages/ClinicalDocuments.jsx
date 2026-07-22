@@ -4,6 +4,8 @@ import UploadDocumentModal from '../components/documents/UploadDocumentModal.jsx
 import DocumentPreview from '../components/documents/DocumentPreview.jsx';
 import { fetchDocumentsByPatient, uploadDocument, deleteDocument } from '../database/documentQueries.js';
 import { useIsReadOnly } from '../hooks/useIsReadOnly.js';
+import { useConfirm } from '../components/feedback/ConfirmContext.jsx';
+import { useToast } from '../components/feedback/ToastContext.jsx';
 
 export default function ClinicalDocuments({ patient }) {
   const [documents, setDocuments] = useState([]);
@@ -12,6 +14,8 @@ export default function ClinicalDocuments({ patient }) {
   const [showUpload, setShowUpload] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const readOnly = useIsReadOnly(patient);
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const loadDocuments = useCallback(async () => {
     if (!patient) return;
@@ -21,6 +25,7 @@ export default function ClinicalDocuments({ patient }) {
       setDocuments(docs);
     } catch (err) {
       console.error('Failed to load documents:', err);
+      toast.error('Unable to load documents.');
     } finally {
       setLoading(false);
     }
@@ -31,18 +36,33 @@ export default function ClinicalDocuments({ patient }) {
   }, [loadDocuments]);
 
   async function handleSave({ formData, file }) {
-    await uploadDocument({ patientId: patient.id, file, formData });
-    await loadDocuments();
+    try {
+      await uploadDocument({ patientId: patient.id, file, formData });
+      await loadDocuments();
+      toast.success('Document uploaded.');
+    } catch (err) {
+      console.error('Failed to upload document:', err);
+      toast.error('Unable to upload document.');
+      throw err;
+    }
   }
 
   async function handleDelete(document) {
-    if (!window.confirm(`Delete "${document.name}"? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete document?',
+      message: `Delete "${document.name}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+
     try {
       await deleteDocument(document.id, document.filePath);
       await loadDocuments();
+      toast.success('Document deleted.');
     } catch (err) {
       console.error('Failed to delete document:', err);
-      alert('Unable to delete document.');
+      toast.error('Unable to delete document.');
     }
   }
 

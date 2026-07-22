@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { updateTimelineEvent } from "../database/timelineQueries.js";
 import { fetchDocumentsByPatient } from "../database/documentQueries.js";
 import { useIsReadOnly } from "../hooks/useIsReadOnly.js";
+import { useToast } from "../components/feedback/ToastContext.jsx";
 
 function statusDotClass(status) {
   switch ((status || "").toLowerCase()) {
@@ -36,6 +37,7 @@ function TimelineEventCard({ event, documents, onUpdated, readOnly }) {
   const [notes, setNotes] = useState(event.notes);
   const [documentId, setDocumentId] = useState(event.documentId || "");
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   async function save() {
     setSaving(true);
@@ -49,8 +51,10 @@ function TimelineEventCard({ event, documents, onUpdated, readOnly }) {
 
       await onUpdated();
       setEditing(false);
+      toast.success("Timeline event updated.");
     } catch (err) {
       console.error(err);
+      toast.error("Unable to save timeline event.");
     } finally {
       setSaving(false);
     }
@@ -167,11 +171,17 @@ function TimelineEventCard({ event, documents, onUpdated, readOnly }) {
 export default function Timeline({ patient, refresh }) {
   const [documents, setDocuments] = useState([]);
   const readOnly = useIsReadOnly(patient);
+  const toast = useToast();
 
   const loadDocs = useCallback(async () => {
     if (!patient) return;
-    const docs = await fetchDocumentsByPatient(patient.id);
-    setDocuments(docs);
+    try {
+      const docs = await fetchDocumentsByPatient(patient.id);
+      setDocuments(docs);
+    } catch (err) {
+      console.error(err);
+      toast.error("Unable to load linked documents.");
+    }
   }, [patient]);
 
   useEffect(() => {

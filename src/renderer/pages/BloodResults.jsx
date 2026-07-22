@@ -1,22 +1,29 @@
 import React from "react";
 
-function getRowClass(flag) {
-  if (!flag) return "";
-  return "blood-row-abnormal";
-}
+function groupByTest(bloods) {
+  const groups = new Map();
 
-function getFlagLabel(flag) {
-  if (!flag) return "";
-  return "ABNORMAL";
+  for (const b of bloods) {
+    if (!groups.has(b.test)) {
+      groups.set(b.test, []);
+    }
+    groups.get(b.test).push(b);
+  }
+
+  // Most recent result first within each test's history
+  for (const results of groups.values()) {
+    results.sort((a, b) => new Date(b.recordedAtRaw) - new Date(a.recordedAtRaw));
+  }
+
+  return groups;
 }
 
 export default function BloodResults({ patient }) {
   const bloods = patient.bloods || [];
+  const grouped = groupByTest(bloods);
 
   return (
     <div className="blood-results-page">
-
-      {/* HEADER */}
       <div className="page-header">
         <div>
           <h1>Blood Results</h1>
@@ -24,50 +31,58 @@ export default function BloodResults({ patient }) {
         </div>
       </div>
 
-      {/* TABLE CARD */}
-      <section className="dashboard-card">
-
-        {bloods.length === 0 ? (
+      {grouped.size === 0 ? (
+        <section className="dashboard-card">
           <p>No blood results available.</p>
-        ) : (
-          <table className="blood-table">
-            <thead>
-              <tr>
-                <th>Test</th>
-                <th>Value</th>
-                <th>Status</th>
-              </tr>
-            </thead>
+        </section>
+      ) : (
+        Array.from(grouped.entries()).map(([testName, results]) => (
+          <section className="dashboard-card" key={testName}>
+            <h3>{testName}</h3>
 
-            <tbody>
-              {bloods.map((b) => (
-                <tr key={b.test} className={getRowClass(b.flag)}>
-                  <td className="blood-test-name">{b.test}</td>
-
-                  <td
-                    className={`blood-value ${
-                      b.flag ? "blood-value-abnormal" : ""
-                    }`}
-                  >
-                    {b.value}
-                  </td>
-
-                  <td>
-                    {b.flag ? (
-                      <span className="blood-flag">
-                        {getFlagLabel(b.flag)}
-                      </span>
-                    ) : (
-                      <span className="blood-normal">NORMAL</span>
-                    )}
-                  </td>
+            <table className="blood-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Value</th>
+                  <th>Reference Range</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
 
-      </section>
+              <tbody>
+                {results.map((b) => (
+                  <tr
+                    key={b.id}
+                    className={b.flag ? "blood-row-flagged" : ""}
+                  >
+                    <td>{b.recordedAt || "—"}</td>
+
+                    <td
+                      className={`blood-value ${
+                        b.flag ? "blood-value-flagged" : "blood-value-normal"
+                      }`}
+                    >
+                      {b.value}
+                      {b.unit ? ` ${b.unit}` : ""}
+                    </td>
+
+                    <td>{b.referenceRange || "—"}</td>
+
+                    <td>
+                      {b.flag ? (
+                        <span className="blood-flag">ABNORMAL</span>
+                      ) : (
+                        <span className="blood-normal">NORMAL</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))
+      )}
     </div>
   );
 }

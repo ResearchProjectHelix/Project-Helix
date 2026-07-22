@@ -7,6 +7,8 @@ import BulkInviteModal from "./components/admin/BulkInviteModal.jsx";
 import RequestRecordsModal from "./components/records/RequestRecordsModal.jsx";
 import IncomingRequestsModal from "./components/records/IncomingRequestsModal.jsx";
 import Sidebar from "./components/layout/Sidebar.jsx";
+import { ToastProvider, useToast } from "./components/feedback/ToastContext.jsx";
+import { ConfirmProvider } from "./components/feedback/ConfirmContext.jsx";
 
 import { usePatients } from "./hooks/usePatients.js";
 import { useAuth } from "./hooks/useAuth.js";
@@ -32,7 +34,7 @@ function readStoredPage() {
   return DEFAULT_PAGE;
 }
 
-export default function App() {
+function AppShell() {
   const [activePage, setActivePage] = useState(readStoredPage);
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [showInviteUser, setShowInviteUser] = useState(false);
@@ -44,6 +46,7 @@ export default function App() {
   const [myOrganizationId, setMyOrganizationId] = useState(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
 
+  const toast = useToast();
   const { session, user, loading: authLoading, signIn, signOut } = useAuth();
 
   const {
@@ -84,11 +87,12 @@ export default function App() {
         if (cancelled) return;
 
         if (data && data.is_active === false) {
-          // Deactivated accounts should not retain access. This is a
-          // client-side check for now — see the is_active migration
-          // note for the follow-up RLS-level enforcement this still needs.
-          alert(
-            "Your account has been deactivated. Please contact your organisation administrator."
+          // Deactivated accounts should not retain access. Toast persists
+          // across the sign-out redirect since ToastProvider sits above
+          // this component in the tree.
+          toast.error(
+            "Your account has been deactivated. Please contact your organisation administrator.",
+            8000
           );
           signOut();
           return;
@@ -117,20 +121,18 @@ export default function App() {
   const patientScoped = isPatientScopedPage(activePage);
 
   async function handleCreatePatient(form) {
+    if (!form.name.trim()) {
+      toast.error("Patient name is required.");
+      return;
+    }
+
     try {
-      if (!form.name.trim()) {
-        alert("Patient name is required.");
-        return;
-      }
-
       await addPatient(form);
-
       setShowAddPatient(false);
-
-      alert("Patient created successfully.");
+      toast.success("Patient created successfully.");
     } catch (err) {
       console.error(err);
-      alert("Unable to create patient.");
+      toast.error("Unable to create patient.");
     }
   }
 
@@ -231,5 +233,15 @@ export default function App() {
         onClose={() => setShowIncomingRequests(false)}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <ConfirmProvider>
+        <AppShell />
+      </ConfirmProvider>
+    </ToastProvider>
   );
 }

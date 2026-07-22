@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useOrgUsers } from "../hooks/useOrgUsers.js";
+import { useConfirm } from "../components/feedback/ConfirmContext.jsx";
+import { useToast } from "../components/feedback/ToastContext.jsx";
 
 const ROLE_LABELS = {
   clinician: "Clinician",
@@ -27,6 +29,8 @@ export default function AdministrationPage({
     setUserActive,
   } = useOrgUsers({ isAdmin, isPlatformAdmin, myOrganizationId });
 
+  const confirm = useConfirm();
+  const toast = useToast();
   const [pendingUserId, setPendingUserId] = useState(null);
 
   const selectedOrganization = organizations.find(
@@ -35,14 +39,34 @@ export default function AdministrationPage({
 
   async function handleRoleChange(userId, role) {
     setPendingUserId(userId);
-    await updateUserRole(userId, role);
+    const ok = await updateUserRole(userId, role);
     setPendingUserId(null);
+    if (ok) {
+      toast.success("User role updated.");
+    }
   }
 
-  async function handleActiveToggle(userId, nextActive) {
-    setPendingUserId(userId);
-    await setUserActive(userId, nextActive);
+  async function handleActiveToggle(user) {
+    const deactivating = user.is_active;
+
+    const ok = await confirm({
+      title: deactivating ? "Deactivate user?" : "Reactivate user?",
+      message: deactivating
+        ? `${user.full_name || user.email || "This user"} will immediately lose access to the platform.`
+        : `${user.full_name || user.email || "This user"} will regain access to the platform.`,
+      confirmLabel: deactivating ? "Deactivate" : "Reactivate",
+      danger: deactivating,
+    });
+
+    if (!ok) return;
+
+    setPendingUserId(user.id);
+    const success = await setUserActive(user.id, !user.is_active);
     setPendingUserId(null);
+
+    if (success) {
+      toast.success(deactivating ? "User deactivated." : "User reactivated.");
+    }
   }
 
   return (
@@ -174,9 +198,7 @@ export default function AdministrationPage({
                         type="button"
                         className="secondary"
                         disabled={isSelf || isPending}
-                        onClick={() =>
-                          handleActiveToggle(user.id, !user.is_active)
-                        }
+                        onClick={() => handleActiveToggle(user)}
                       >
                         {user.is_active ? "Deactivate" : "Reactivate"}
                       </button>

@@ -29,6 +29,15 @@ function formatDate(isoDate) {
   return `${day}/${month}/${year}`;
 }
 
+function formatDateTime(isoTimestamp) {
+  if (!isoTimestamp) return null;
+  const d = new Date(isoTimestamp);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 /**
  * =========================
  * FETCH ALL PATIENTS
@@ -81,7 +90,14 @@ export async function fetchPatientById(patientId, preloadedPatientRow = null) {
   }
 
   const [bloodsRes, reportsRes, timelineRes, mdtRes] = await Promise.all([
-    supabase.from('blood_tests').select('*').eq('patient_id', patientId),
+    supabase
+      .from('blood_tests')
+      .select('*')
+      .eq('patient_id', patientId)
+      // Most recent first — so any code that does bloods.find(...) for a
+      // given test (e.g. the completeness engine's CA19-9 check) picks up
+      // the latest known value rather than the oldest historical one.
+      .order('recorded_at', { ascending: false }),
 
     supabase
       .from('reports')
@@ -103,9 +119,14 @@ export async function fetchPatientById(patientId, preloadedPatientRow = null) {
   if (mdtRes.error) throw mdtRes.error;
 
   const bloods = bloodsRes.data.map((b) => ({
+    id: b.id,
     test: b.test,
     value: b.value,
     flag: b.flag,
+    unit: b.unit || '',
+    referenceRange: b.reference_range || '',
+    recordedAtRaw: b.recorded_at,
+    recordedAt: formatDateTime(b.recorded_at),
   }));
 
   const reports = reportsRes.data.map((r) => ({
